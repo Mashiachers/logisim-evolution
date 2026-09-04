@@ -300,6 +300,10 @@ final class XmlWriter {
       final var elt = fromMap(circuit, board);
       if (elt != null) ret.appendChild(elt);
     }
+    final var annotationsElt = AnnotationXml.toXmlElement(doc, circuit.getAnnotations());
+    if (annotationsElt != null) {
+      ret.appendChild(annotationsElt);
+    }
     return ret;
   }
 
@@ -530,7 +534,7 @@ final class XmlWriter {
     for (final var tool : toolbar.getContents()) {
       if (tool == null) {
         elt.appendChild(doc.createElement("sep"));
-      } else {
+      } else if (!(tool instanceof com.cburch.logisim.tools.annotation.AnnotationTool)) {
         elt.appendChild(fromTool(tool));
       }
     }

@@ -124,6 +124,8 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
   private CanvasPane canvasPane;
   private Bounds oldPreferredSize;
   private volatile boolean inPaint = false; // only for within paintComponent
+  private AnnotationToolbarPanel annotationToolbar;
+  private com.cburch.logisim.tools.annotation.AnnotationTool annotationTool;
 
   public Canvas(Project proj) {
     this.proj = proj;
@@ -243,8 +245,10 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
     canvasPane.getHorizontalScrollBar().addAdjustmentListener(this);
     canvasPane.getVerticalScrollBar().addAdjustmentListener(this);
     viewport.setView(this);
+    setLayout(null);
     setOpaque(false);
     computeSize(true);
+    updateAnnotationToolbar();
   }
 
   @Override
@@ -592,6 +596,9 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
     try {
       super.paintComponent(g);
       painter.paintContents(g, proj);
+      if (annotationToolbar != null && annotationToolbar.isVisible()) {
+        annotationToolbar.updateLocation();
+      }
       if (canvasPane == null) {
         viewport.paintContents(g);
       }
@@ -784,6 +791,9 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
   @Override
   public void adjustmentValueChanged(AdjustmentEvent e) {
     updateArrows();
+    if (annotationToolbar != null && annotationToolbar.isVisible()) {
+      annotationToolbar.updateLocation();
+    }
   }
 
   private void doZoom(Point mouseLocation, boolean zoomIn) {
@@ -808,6 +818,34 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
       viewport.doLayout();
       setHorizontalScrollBar((int) Math.round(newViewOffsetX));
       setVerticalScrollBar((int) Math.round(newViewOffsetY));
+    }
+  }
+
+  public com.cburch.logisim.tools.annotation.AnnotationTool getAnnotationTool() {
+    if (annotationTool == null) {
+      annotationTool = new com.cburch.logisim.tools.annotation.AnnotationTool();
+    }
+    return annotationTool;
+  }
+
+  public void updateAnnotationToolbar() {
+    final var t = proj.getTool();
+    if (t instanceof com.cburch.logisim.tools.annotation.AnnotationTool at) {
+      annotationTool = at;
+      if (annotationToolbar == null && canvasPane != null) {
+        setLayout(null);
+        annotationToolbar = new AnnotationToolbarPanel(this, annotationTool);
+        add(annotationToolbar);
+      }
+      if (annotationToolbar != null) {
+        annotationToolbar.setVisible(true);
+        annotationToolbar.updateLocation();
+        annotationToolbar.updateState();
+      }
+    } else {
+      if (annotationToolbar != null) {
+        annotationToolbar.setVisible(false);
+      }
     }
   }
 
@@ -1203,6 +1241,7 @@ public class Canvas extends JPanel implements LocaleListener, CanvasPaneContents
         } else {
           setCursor(t.getCursor());
         }
+        updateAnnotationToolbar();
       } else if (act == ProjectEvent.ACTION_SET_STATE) {
         final var oldState = (CircuitState) event.getOldData();
         final var newState = (CircuitState) event.getData();

@@ -47,6 +47,7 @@ public class BaseLibrary extends Library {
         new EditTool(selectTool, wiring),
         wiring,
         new TextTool(),
+        new com.cburch.logisim.tools.annotation.AnnotationTool(),
         imageAdder,
         new MenuTool());
   }

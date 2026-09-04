@@ -77,6 +77,31 @@ class LayoutToolbarModel extends AbstractToolbarModel {
         newItems.add(Objects.requireNonNullElseGet(i, () -> new ToolItem(tool)));
       }
     }
+    boolean hasAnnot = false;
+    for (final var it : newItems) {
+      if (it instanceof ToolItem ti && ti.tool instanceof com.cburch.logisim.tools.annotation.AnnotationTool) {
+        hasAnnot = true;
+        break;
+      }
+    }
+    if (!hasAnnot) {
+      int pos = -1;
+      for (int i = 0; i < newItems.size(); i++) {
+        if (newItems.get(i) instanceof ToolItem ti && ti.tool instanceof com.cburch.logisim.tools.TextTool) {
+          pos = i + 1;
+          break;
+        }
+      }
+      final var annotTool = (proj != null && proj.getFrame() != null && proj.getFrame().getCanvas() != null)
+          ? proj.getFrame().getCanvas().getAnnotationTool()
+          : new com.cburch.logisim.tools.annotation.AnnotationTool();
+      final var toolItem = new ToolItem(annotTool);
+      if (pos >= 0 && pos <= newItems.size()) {
+        newItems.add(pos, toolItem);
+      } else {
+        newItems.add(toolItem);
+      }
+    }
     items = Collections.unmodifiableList(newItems);
     fireToolbarContentsChanged();
   }

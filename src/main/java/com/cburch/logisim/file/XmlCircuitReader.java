@@ -257,6 +257,8 @@ public class XmlCircuitReader extends CircuitTransaction {
               String.format(contextFmt, circData.circuit.getName(), toWireString(subElement));
           reader.addErrors(e, context);
         }
+      } else if ("annotations".equals(subEltName)) {
+        AnnotationXml.loadIntoCircuit(dest, subElement);
       }
     }
     for (var comp : overlapComponents) {

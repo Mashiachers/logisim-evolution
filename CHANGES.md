@@ -3,6 +3,7 @@
 # Changes #
 
 * @dev (????-??-??)
+  * Added Circuit Annotation and Freehand Markup Pen tools with HUD palette (@Mashiachers).
   * Added Image component to insert custom bitmap images into circuits and subcircuit appearances.
   * Added contributor guidance and an online component overview for the TTL library.
   * Added "Find Action" omni-search, letting menu actions be found and run by typing part of their

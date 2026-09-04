@@ -296,6 +296,8 @@ public class Circuit {
   private final SocSimulationManager socSim = new SocSimulationManager();
 
   private final LogisimFile logiFile;
+  private final com.cburch.logisim.circuit.annotation.CircuitAnnotations annotations =
+      new com.cburch.logisim.circuit.annotation.CircuitAnnotations(this);
 
   public Circuit(String name, LogisimFile file, Project proj) {
     staticAttrs = CircuitAttributes.createBaseAttrs(this, name);
@@ -562,6 +564,13 @@ public class Circuit {
     }
     context.setGraphics(g);
     gCopy.dispose();
+    if (g instanceof java.awt.Graphics2D g2) {
+      annotations.draw(g2);
+    }
+  }
+
+  public com.cburch.logisim.circuit.annotation.CircuitAnnotations getAnnotations() {
+    return annotations;
   }
 
   private void fireEvent(CircuitEvent event) {
@@ -617,29 +626,35 @@ public class Circuit {
   public Bounds getBounds() {
     final var wireBounds = wires.getWireBounds();
     final var it = comps.iterator();
-    if (!it.hasNext()) return wireBounds;
-    final var first = it.next();
-    final var firstBounds = first.getBounds();
-    var xMin = firstBounds.getX();
-    var yMin = firstBounds.getY();
-    var xMax = xMin + firstBounds.getWidth();
-    var yMax = yMin + firstBounds.getHeight();
-    while (it.hasNext()) {
-      Component c = it.next();
-      Bounds bds = c.getBounds();
-      int x0 = bds.getX();
-      int x1 = x0 + bds.getWidth();
-      int y0 = bds.getY();
-      int y1 = y0 + bds.getHeight();
-      if (x0 < xMin) xMin = x0;
-      if (x1 > xMax) xMax = x1;
-      if (y0 < yMin) yMin = y0;
-      if (y1 > yMax) yMax = y1;
+    var baseBounds = wireBounds;
+    if (it.hasNext()) {
+      final var first = it.next();
+      final var firstBounds = first.getBounds();
+      var xMin = firstBounds.getX();
+      var yMin = firstBounds.getY();
+      var xMax = xMin + firstBounds.getWidth();
+      var yMax = yMin + firstBounds.getHeight();
+      while (it.hasNext()) {
+        Component c = it.next();
+        Bounds bds = c.getBounds();
+        int x0 = bds.getX();
+        int x1 = x0 + bds.getWidth();
+        int y0 = bds.getY();
+        int y1 = y0 + bds.getHeight();
+        if (x0 < xMin) xMin = x0;
+        if (x1 > xMax) xMax = x1;
+        if (y0 < yMin) yMin = y0;
+        if (y1 > yMax) yMax = y1;
+      }
+      final var compBounds = Bounds.create(xMin, yMin, xMax - xMin, yMax - yMin);
+      baseBounds = (wireBounds.getWidth() == 0 || wireBounds.getHeight() == 0)
+          ? compBounds
+          : compBounds.add(wireBounds);
     }
-    final var compBounds = Bounds.create(xMin, yMin, xMax - xMin, yMax - yMin);
-    return (wireBounds.getWidth() == 0 || wireBounds.getHeight() == 0)
-        ? compBounds
-        : compBounds.add(wireBounds);
+    final var annotBounds = annotations.getBounds();
+    return (annotBounds == null || annotBounds == Bounds.EMPTY_BOUNDS)
+        ? baseBounds
+        : (baseBounds == Bounds.EMPTY_BOUNDS ? annotBounds : baseBounds.add(annotBounds));
   }
 
   public Bounds getBounds(Graphics g) {
@@ -667,8 +682,13 @@ public class Circuit {
         if (y1 > yMax) yMax = y1;
       }
     }
-    if (xMin > xMax || yMin > yMax) return Bounds.EMPTY_BOUNDS;
-    return Bounds.create(xMin, yMin, xMax - xMin, yMax - yMin);
+    var baseBounds = (xMin > xMax || yMin > yMax)
+        ? Bounds.EMPTY_BOUNDS
+        : Bounds.create(xMin, yMin, xMax - xMin, yMax - yMin);
+    final var annotBounds = annotations.getBounds();
+    return (annotBounds == null || annotBounds == Bounds.EMPTY_BOUNDS)
+        ? baseBounds
+        : (baseBounds == Bounds.EMPTY_BOUNDS ? annotBounds : baseBounds.add(annotBounds));
   }
 
   public Collection<Circuit> getCircuitsUsingThis() {
